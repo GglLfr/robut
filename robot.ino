@@ -1,0 +1,76 @@
+#include <Servo.h>
+#include "config.hpp"
+#include "stages.hpp"
+#include "motor.hpp"
+#include "sensor.hpp"
+
+// Speed of sound in cm/μs.
+#define SPEED_OF_SOUND 0.0345
+
+Servo servo;
+Stage* currentStage;
+unsigned long oneWayCompletionTime = 0;
+
+void setup() {
+  pinMode(TRIG, OUTPUT);
+  digitalWrite(TRIG, LOW);
+
+  pinMode(ECHO, INPUT);
+  Serial.begin(9600);
+
+  pinMode(RIGHT_M1, OUTPUT);
+  pinMode(RIGHT_M2, OUTPUT);
+  pinMode(LEFT_M1, OUTPUT);
+  pinMode(LEFT_M2, OUTPUT);
+
+  servo.attach(SERVO_PIN, 660, 2400); // TODO: calibrate this
+  servo.write(restAngle);
+
+  currentStage = new InitStage(millis());
+}
+
+void runStage(float sensorDistCm) {
+  if (currentStage == NULL)
+    return;
+
+  auto stageType = currentStage->stageRepr();
+  if (!currentStage->loop(sensorDistCm))
+    return;
+  free(currentStage);
+
+  // goto next stage
+  switch (stageType) {
+    case RobotStage::INIT:
+      currentStage = new RunningStage(oneWayCompletionTime, millis());
+    break;
+    case RobotStage::RUNNING:
+      currentStage = new ThrowingStage(servo, millis());
+    break;
+    case RobotStage::WALL_REACHED:
+      currentStage = new BackwardStage(oneWayCompletionTime, millis());
+    break;
+    case RobotStage::BACKWARD:
+      currentStage = new TerminatedStage();
+    break;
+    case RobotStage::TERMINATED:
+      Serial.println("should not happen");
+      currentStage = NULL;
+    break;
+  }
+
+}
+
+void loop() {
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+
+  int microsecs = pulseIn(ECHO, HIGH);
+  int averagedMicrosecs = appendSensorData(microsecs);
+  float cms = averagedMicrosecs * SPEED_OF_SOUND * 0.5f;
+  // Serial.print(cms);
+  // Serial.print(":\t");
+  runStage(cms);
+
+  delay(10);
+}
