@@ -28,7 +28,7 @@ struct Stage {
 struct InitStage : public Stage {
   unsigned long startTime;
   const unsigned long minStartTime = 500; // wait before starting gesture will be recognised
-  const float minStartGestuerDist = 10.0f;
+  const float minStartGestureDist = 10.0f;
 
   InitStage(unsigned long timeNow) : startTime(timeNow) {}
   ~InitStage() override {}
