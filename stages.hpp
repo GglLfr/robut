@@ -4,7 +4,7 @@
 #include "motor.hpp"
 
 const unsigned long minTimeOverRamp = 5 * 1000; // time until ramp is definitely cleared
-const float sensorStopDist = 20.0f; // cutoff distance to stop, adjust for 5cm termination distance
+const float sensorStopDist = 10.0f; // cutoff distance to stop, adjust for 5cm termination distance
 
 const int restAngle = 115; // angle at rest
 const int throwAngle = 0; // final throw angle
